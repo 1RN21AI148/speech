@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Voice Assistant</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background: #f0f2f5;
+            font-family: Arial, sans-serif;
+            position: relative;
+        }
+        .sign-in {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            padding: 10px 20px;
+            cursor: pointer;
+            font-size: 1em;
+            transition: background-color 0.3s ease;
+        }
+        .sign-in:hover {
+            background-color: #0056b3;
+        }
+        .container {
+            text-align: center;
+        }
+        .mic-button {
+            background-color: #ff4d4d;
+            border: none;
+            border-radius: 50%;
+            width: 80px;
+            height: 80px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.2);
+            transition: transform 0.3s ease;
+        }
+        .mic-button:hover {
+            transform: scale(1.1);
+        }
+        .mic-button img {
+            width: 50%;
+        }
+        .response {
+            margin-top: 20px;
+            font-size: 1.2em;
+            color: #333;
+        }
+        .loading {
+            font-size: 1.1em;
+            color: #777;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <button class="sign-in" onclick="signIn()">Sign In</button>
+    <div class="container">
+        <h1>My Voice Assistant</h1>
+        <button class="mic-button" onclick="sendVoiceCommand()">
+            <img src="https://img.icons8.com/ios-filled/50/ffffff/microphone.png" alt="Mic Icon" />
+        </button>
+        <p class="response" id="response"></p>
+        <p class="loading" id="loading"></p>
+    </div>
+
+    <script>
+        function signIn() {
+            alert("Sign-in functionality goes here!");
+        }
+
+        async function sendVoiceCommand() {
+            document.getElementById('loading').innerText = 'Listening...';
+
+            const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+            recognition.lang = 'en-US';
+
+            recognition.onresult = async (event) => {
+                const command = event.results[0][0].transcript;
+                document.getElementById('response').innerText = `You said: "${command}"`;
+                document.getElementById('loading').innerText = 'Processing...';
+
+                try {
+                    const response = await fetch('http://127.0.0.1:5000/process_command', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ command: command })
+                    });
+                    const result = await response.json();
+                    document.getElementById('response').innerText = result.response;
+                } catch (error) {
+                    document.getElementById('response').innerText = "Failed to connect to the assistant.";
+                } finally {
+                    document.getElementById('loading').innerText = '';
+                }
+            };
+
+            recognition.onerror = (err) => {
+                document.getElementById('response').innerText = "Sorry, couldn't recognize speech.";
+                document.getElementById('loading').innerText = '';
+            };
+
+            recognition.start();
+        }
+    </script>
+</body>
+</html>
