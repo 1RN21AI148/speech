@@ -18,6 +18,8 @@ import threading
 import win32gui
 import os
 import schedule
+import tkinter as tk
+from tkinter.scrolledtext import ScrolledText
 
 # Initialize pyttsx3 engine only once
 engine = pyttsx3.init()
@@ -216,8 +218,9 @@ def handle_radio_command():
 
 def process_command(command):
     if 'radio' in command:
-        speak("Starting the radio.")
+        # speak("Starting the radio.")
         handle_radio_command()
+        return "Checking with Radio"
     elif any(word in command for word in ['news', 'headlines']):
         get_news_headlines()
     elif 'time' in command:
@@ -282,9 +285,79 @@ def wake_word_detection():
             recorder.delete()
 
 
+class VoiceAssistantUI:
+    def __init__(self, root):
+        self.root = root
+        self.root.title("Voice Assistant")
+
+        # Log area
+        self.log_area = ScrolledText(root, wrap=tk.WORD, state='disabled', height=15)
+        self.log_area.pack(padx=10, pady=10, fill=tk.BOTH, expand=True)
+
+        # Command input
+        self.input_frame = tk.Frame(root)
+        self.input_frame.pack(padx=10, pady=5, fill=tk.X)
+        self.command_entry = tk.Entry(self.input_frame, width=50)
+        self.command_entry.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=5)
+        self.command_entry.bind('<Return>', self.send_command)
+
+        self.send_button = tk.Button(self.input_frame, text="Send", command=self.send_command)
+        self.send_button.pack(side=tk.RIGHT, padx=5)
+
+        # Control buttons
+        self.control_frame = tk.Frame(root)
+        self.control_frame.pack(padx=10, pady=10)
+        self.start_button = tk.Button(self.control_frame, text="Start Assistant", command=self.start_assistant)
+        self.start_button.pack(side=tk.LEFT, padx=5)
+        self.stop_button = tk.Button(self.control_frame, text="Stop Assistant", command=self.stop_assistant, state='disabled')
+        self.stop_button.pack(side=tk.RIGHT, padx=5)
+
+        self.assistant_running = False
+
+    def log(self, text):
+        self.log_area.config(state='normal')
+        self.log_area.insert(tk.END, f"{text}\n")
+        self.log_area.yview(tk.END)
+        self.log_area.config(state='disabled')
+
+    def send_command(self, event=None):
+        command = self.command_entry.get()
+        if command:
+            self.log(f"You: {command}")
+            response = process_command(command)
+            self.log(f"Assistant: {response}")
+            speak(response)
+            self.command_entry.delete(0, tk.END)
+
+    def start_assistant(self):
+        self.log("Starting assistant...")
+        self.assistant_running = True
+        self.start_button.config(state='disabled')
+        self.stop_button.config(state='normal')
+        threading.Thread(target=self.run_assistant).start()
+
+    def stop_assistant(self):
+        self.log("Stopping assistant...")
+        self.assistant_running = False
+        self.start_button.config(state='normal')
+        self.stop_button.config(state='disabled')
+
+    def run_assistant(self):
+        while self.assistant_running:
+            # Simulate listening for wake word (replace with actual wake word detection)
+            # time.sleep(5)
+            if wake_word_detection():
+                self.log("Wake word detected!")
+                command = listen()
+                if command:  # Replace with actual command from speech
+                    self.log(f"You: {command}")
+                    response = process_command(command)
+                    self.log(f"Assistant: {response}")
+                    speak(response)
+
+
+# Run the UI
 if __name__ == "__main__":
-    while True:
-        if wake_word_detection():
-            command = listen()
-            if command:
-                process_command(command)
+    root = tk.Tk()
+    app = VoiceAssistantUI(root)
+    root.mainloop()
