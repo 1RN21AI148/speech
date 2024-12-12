@@ -132,9 +132,7 @@ def get_news_headlines():
         if newsdata_response.get("status") == "success" and newsdata_response.get("results"):
             articles = newsdata_response["results"][:10]
             headlines = [article["title"] for article in articles]
-            for idx, headline in enumerate(headlines, 1):
-                speak(f"Headline {idx}: {headline}")
-                print(f"Headline {idx}: {headline}")
+            return headlines
         else:
             speak("Sorry, I couldn't fetch the news right now.")
             return("No articles found or failed to retrieve news.")
@@ -223,8 +221,7 @@ def process_command(command):
         handle_radio_command()
         return "playing radio"
     elif any(word in command for word in ['news', 'headlines']):
-        get_news_headlines()
-        return (f"Headline {idx}: {headline}")
+        return get_news_headlines()
     elif 'time' in command:
         current_time = datetime.now().strftime('%H:%M')
         speak(f"The current time is {current_time}")
@@ -375,8 +372,14 @@ class VoiceAssistantUI:
         if command:
             self.log(f"You: {command}")
             response = process_command(command)
-            self.log(f"Assistant: {response}")
-            speak(response)
+            if any(word in command for word in ['news', 'headlines']):
+                for idx, headline in enumerate(response, 1):
+                    self.log(f"Assistant Headline {idx}: {headline}")
+                for idx, headline in enumerate(response, 1):
+                    speak(f"Headline {idx}: {headline}")
+            else:
+                self.log(f"Assistant: {response}")
+                speak(response)
             self.command_entry.delete(0, tk.END)
 
     def start_assistant(self):
@@ -400,8 +403,13 @@ class VoiceAssistantUI:
                 if command:
                     self.log(f"You: {command}")
                     response = process_command(command)
-                    self.log(f"Assistant: {response}")
-                    speak(response)
+                    if any(word in command for word in ['news', 'headlines']):
+                        for idx, headline in enumerate(response, 1):
+                            self.log(f"Assistant Headline {idx}: {headline}")
+                            speak(f"Headline {idx}: {headline}")
+                    else:
+                        self.log(f"Assistant: {response}")
+                        speak(response)
 
 
 
