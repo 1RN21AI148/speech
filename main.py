@@ -18,6 +18,8 @@ import threading
 import win32gui
 import os
 import schedule
+from PIL import Image, ImageTk
+from tkinter import ttk
 import tkinter as tk
 from tkinter.scrolledtext import ScrolledText
 
@@ -59,7 +61,6 @@ def listen():
 def play_song(song_name):
     try:
         speak(f"Searching for {song_name} on YouTube")
-        print(f"Searching for {song_name} on YouTube")
         
         # Search for the song on YouTube
         search = Search(song_name)
@@ -70,10 +71,10 @@ def play_song(song_name):
         webbrowser.open(video_url)
         
         speak(f"Playing {song_name}")
-        print(f"Playing {song_name}: {video_url}")
+        #return(f"Playing {song_name}: {video_url}")
     except Exception as e:
         speak("I couldn't find the song. Please try again.")
-        print(f"Error playing song: {e}")
+        return(f"Error playing song: {e}")
 
 def get_weather(city):
     try:
@@ -93,30 +94,30 @@ def get_weather(city):
                               f"{weather_description}. Humidity is {humidity}%.")
 
             speak(weather_report)
-            print(weather_report)
+            #return(weather_report)
             print(f"Fetching weather for: {city}")
         else:
             speak("City not found. Please try again.")
-            print("City not found.")
+            return("City not found.")
     except Exception as e:
         speak("Sorry, I couldn't fetch the weather details.")
-        print(f"Error fetching weather: {e}")
+        return(f"Error fetching weather: {e}")
 
 # Wikipedia search function
 def get_wikipedia_summary(subject):
     try:
         summary = wikipedia.summary(subject, sentences=3)  # Get a brief summary (2 sentences)
-        print(summary)
+        return(summary)
         speak(summary)
     except wikipedia.exceptions.PageError:
         speak("Sorry, I couldn't find any information on that topic.")
-        print(f"No Wikipedia page found for {subject}.")
+        return(f"No Wikipedia page found for {subject}.")
     except wikipedia.exceptions.DisambiguationError as e:
-        print(f"Disambiguation error for {subject}: {e.options}")
+        return(f"Disambiguation error for {subject}: {e.options}")
         speak(f"There are multiple results for {subject}. Please be more specific.")
     except Exception as e:
         speak("An error occurred while fetching Wikipedia information.")
-        print(f"Error fetching Wikipedia summary: {e}")
+        return(f"Error fetching Wikipedia summary: {e}")
         
 
 
@@ -129,17 +130,17 @@ def get_news_headlines():
         print("Newsdata.io API Response:", newsdata_response)  # Debugging response
 
         if newsdata_response.get("status") == "success" and newsdata_response.get("results"):
-            articles = newsdata_response["results"][:5]
+            articles = newsdata_response["results"][:10]
             headlines = [article["title"] for article in articles]
             for idx, headline in enumerate(headlines, 1):
-                print(f"Headline {idx}: {headline}")
                 speak(f"Headline {idx}: {headline}")
+                print(f"Headline {idx}: {headline}")
         else:
             speak("Sorry, I couldn't fetch the news right now.")
-            print("No articles found or failed to retrieve news.")
+            return("No articles found or failed to retrieve news.")
     except Exception as e:
         speak("An error occurred while fetching the news.")
-        print(f"Error fetching news: {e}")
+        return(f"Error fetching news: {e}")
 
 
 
@@ -164,8 +165,9 @@ def add_songs():
     conn = sqlite3.connect('songs.db')
     cursor = conn.cursor()
     songs = [
-        ("Song1", "melody", "C:/Users/yadun/OneDrive/Desktop/123/melody/[iSongs.info] 02 - Neenaade Naa.mp3"),
-        ("Song2", "rock", "C:/Users/yadun/OneDrive/Desktop/speech/[iSongs.info] 05 - Feel The Power.mp3"),
+        ("neenadhe naa Song", "melody", "C:/Users/yadun/OneDrive/Desktop/123/melody/[iSongs.info] 02 - Neenaade Naa.mp3"),
+        ("feel the power song", "rock", "C:/Users/yadun/OneDrive/Desktop/speech/[iSongs.info] 05 - Feel The Power.mp3"),
+        ("star boy song","pop","https://youtu.be/34Na4j8AVgA?si=tb0vQUcxDjsK_JER")
         # Add more songs for each genre...
     ]
     cursor.executemany('INSERT INTO songs (song_name, genre, path) VALUES (?, ?, ?)', songs)
@@ -189,7 +191,7 @@ def play_songs_by_genre(genre):
         print(f"Playing {song_name}")
         speak(f"Playing {song_name}")
         webbrowser.open(song_url)
-        time.sleep(60)  # 1-minute interval
+        time.sleep(300)  
 
 # Schedule based on your time slots
 def handle_radio_command():
@@ -197,14 +199,14 @@ def handle_radio_command():
 
     if 6 <= current_hour < 7:
         genre = "devotional"
-    elif 20 <= current_hour < 21:
+    elif 7 <= current_hour < 9:
         genre = "rock"
     elif 9 <= current_hour < 11:
-        genre = "romantic"
+        genre = "pop"
     elif 11 <= current_hour < 13:
         genre = "melody"
     elif 13 <= current_hour < 15:
-        genre = "pop"
+        genre = "romantic"
     elif 15 <= current_hour < 18:
         genre = "evergreen"
     else:
@@ -218,32 +220,35 @@ def handle_radio_command():
 
 def process_command(command):
     if 'radio' in command:
-        # speak("Starting the radio.")
         handle_radio_command()
-        return "Checking with Radio"
+        return "playing radio"
     elif any(word in command for word in ['news', 'headlines']):
         get_news_headlines()
+        return (f"Headline {idx}: {headline}")
     elif 'time' in command:
         current_time = datetime.now().strftime('%H:%M')
         speak(f"The current time is {current_time}")
+        return {current_time}
     elif 'date' in command:
         current_date = datetime.now().strftime('%Y-%m-%d')
         speak(f"Today's date is {current_date}")
+        return {current_date}
     elif 'play' in command:
         song_name = command.replace('play', '').strip()
         play_song(song_name)
+        return(f"Playing {song_name}")
     elif 'weather' in command:
         city_match = re.search(r'weather in ([a-zA-Z\s]+)', command)
         if city_match:
             city = city_match.group(1).strip()
-            get_weather(city)
+            return get_weather(city)
         else:
             speak("Please specify the city.")
     elif 'wikipedia' in command or 'tell me about' in command or 'information about' in command or 'what is' in command:
         subject = re.search(r'(wikipedia|tell me about|information about)\s+(.+)', command)
         if subject:
             search_query = subject.group(2).strip()
-            get_wikipedia_summary(search_query)
+            return get_wikipedia_summary(search_query)
         else:
             speak("Please specify a subject to search on Wikipedia.")
     elif 'exit' in command or 'stop' in command:
@@ -251,7 +256,7 @@ def process_command(command):
         exit()
     else:
         speak("I'm not sure how to respond to that.")
-
+        return "I'm not sure how to respond to that."
 
 
 def wake_word_detection():
@@ -266,16 +271,15 @@ def wake_word_detection():
         recorder = pvrecorder.PvRecorder(device_index=-1, frame_length=porcupine.frame_length)
         recorder.start()
 
-        print("Listening for the wake word...")
-
         while True:
             pcm = recorder.read()
             keyword_index = porcupine.process(pcm)
 
             if keyword_index >= 0:
-                print("Wake word detected!")
+                #print("Wake word detected!")
                 speak("hmm")
                 return True
+                
 
     finally:
         if porcupine:
@@ -285,31 +289,77 @@ def wake_word_detection():
             recorder.delete()
 
 
+import tkinter.font as tkFont
+
 class VoiceAssistantUI:
     def __init__(self, root):
         self.root = root
-        self.root.title("Voice Assistant")
+        self.root.title("vocaloid for RJ's")
+
+        # Define a custom font for the UI
+        self.text_font = tkFont.Font(family="Times New Roman", size=20)
+
+        # Set the background color of the window
+        self.root.configure(bg="#282c34")  # Dark gray background
 
         # Log area
-        self.log_area = ScrolledText(root, wrap=tk.WORD, state='disabled', height=15)
+        self.log_area = ScrolledText(
+            root, 
+            wrap=tk.WORD, 
+            state='disabled', 
+            height=15, 
+            bg="#1e1e1e",  # Background color for log area (dark)
+            fg="#61dafb",  # Text color (light blue)
+            font=self.text_font,  # Apply custom font
+            insertbackground="white"  # Cursor color
+        )
         self.log_area.pack(padx=10, pady=10, fill=tk.BOTH, expand=True)
 
         # Command input
-        self.input_frame = tk.Frame(root)
+        self.input_frame = tk.Frame(root, bg="#282c34")  # Match background color
         self.input_frame.pack(padx=10, pady=5, fill=tk.X)
-        self.command_entry = tk.Entry(self.input_frame, width=50)
+        self.command_entry = tk.Entry(
+            self.input_frame, 
+            width=50, 
+            bg="#1e1e1e",  # Background for entry
+            fg="white",  # Text color
+            font=self.text_font,  # Apply custom font
+            insertbackground="white"  # Cursor color
+        )
         self.command_entry.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=5)
         self.command_entry.bind('<Return>', self.send_command)
 
-        self.send_button = tk.Button(self.input_frame, text="Send", command=self.send_command)
+        self.send_button = tk.Button(
+            self.input_frame, 
+            text="Send", 
+            command=self.send_command, 
+            bg="#61dafb",  # Button background color
+            fg="black",  # Button text color
+            font=self.text_font  # Apply custom font
+        )
         self.send_button.pack(side=tk.RIGHT, padx=5)
 
         # Control buttons
-        self.control_frame = tk.Frame(root)
+        self.control_frame = tk.Frame(root, bg="#282c34")  # Match background color
         self.control_frame.pack(padx=10, pady=10)
-        self.start_button = tk.Button(self.control_frame, text="Start Assistant", command=self.start_assistant)
+        self.start_button = tk.Button(
+            self.control_frame, 
+            text="Start Assistant", 
+            command=self.start_assistant, 
+            bg="#98c379",  # Green button
+            fg="black", 
+            font=self.text_font  # Apply custom font
+        )
         self.start_button.pack(side=tk.LEFT, padx=5)
-        self.stop_button = tk.Button(self.control_frame, text="Stop Assistant", command=self.stop_assistant, state='disabled')
+        self.stop_button = tk.Button(
+            self.control_frame, 
+            text="Stop Assistant", 
+            command=self.stop_assistant, 
+            state='disabled', 
+            bg="#e06c75",  # Red button
+            fg="black", 
+            font=self.text_font  # Apply custom font
+        )
         self.stop_button.pack(side=tk.RIGHT, padx=5)
 
         self.assistant_running = False
@@ -330,30 +380,30 @@ class VoiceAssistantUI:
             self.command_entry.delete(0, tk.END)
 
     def start_assistant(self):
-        self.log("Starting assistant...")
+        self.log("listening for wake word....")
         self.assistant_running = True
         self.start_button.config(state='disabled')
         self.stop_button.config(state='normal')
         threading.Thread(target=self.run_assistant).start()
 
     def stop_assistant(self):
-        self.log("Stopping assistant...")
+        self.log("assistant stopped")
         self.assistant_running = False
         self.start_button.config(state='normal')
         self.stop_button.config(state='disabled')
 
     def run_assistant(self):
         while self.assistant_running:
-            # Simulate listening for wake word (replace with actual wake word detection)
-            # time.sleep(5)
             if wake_word_detection():
                 self.log("Wake word detected!")
                 command = listen()
-                if command:  # Replace with actual command from speech
+                if command:
                     self.log(f"You: {command}")
                     response = process_command(command)
                     self.log(f"Assistant: {response}")
                     speak(response)
+
+
 
 
 # Run the UI
