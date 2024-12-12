@@ -22,6 +22,9 @@ from PIL import Image, ImageTk
 from tkinter import ttk
 import tkinter as tk
 from tkinter.scrolledtext import ScrolledText
+import json
+from flask import jsonify
+from collections import OrderedDict
 
 # Initialize pyttsx3 engine only once
 engine = pyttsx3.init()
@@ -174,8 +177,74 @@ def add_songs():
     conn.commit()
     conn.close()
 
+# def get_songs():
+#     # Connect to the SQLite database
+#     conn = sqlite3.connect('songs.db')
+#     cursor = conn.cursor()
+
+#     # Fetch all songs data from the database
+#     cursor.execute('SELECT song_name, genre, path FROM songs')
+#     songs = cursor.fetchall()
+
+#     # Close the database connection
+#     conn.close()
+
+#     # Format the result into a list of dictionaries
+#     songs_list = [{"song_name": song[0], "genre": song[1], "path": song[2]} for song in songs]
+
+#     # Return the songs data as JSON
+#     return jsonify(songs_list)
+
+def get_songs():
+    # Connect to the SQLite database
+    conn = sqlite3.connect('songs.db')
+    cursor = conn.cursor()
+
+    # Fetch all songs data from the database
+    cursor.execute('SELECT song_name, genre, path FROM songs')
+    songs = cursor.fetchall()
+
+    # Close the database connection
+    conn.close()
+
+    # Format the result into a list of OrderedDicts
+    songs_list = [
+        OrderedDict([("song_name", song[0]), ("genre", song[1]), ("path", song[2])])
+        for song in songs
+    ]
+
+    # Return the songs data as JSON
+    return jsonify(songs_list)
+
+def add_song(json_data):
+
+    print("data received: ", json_data)
+    
+    # Extract song details
+    song_name = json_data.get("song_name")
+    genre = json_data.get("genre")
+    path = json_data.get("path")
+    
+    # Check if all required fields are provided
+    if not song_name or not genre or not path:
+        print("Missing song data, skipping entry")
+        return  # Stop execution if any data is missing
+    
+    # Connect to the SQLite database
+    conn = sqlite3.connect('songs.db')
+    cursor = conn.cursor()
+
+    # Insert the song into the database
+    cursor.execute('INSERT INTO songs (song_name, genre, path) VALUES (?, ?, ?)', 
+                   (song_name, genre, path))
+
+    # Commit changes and close connection
+    conn.commit()
+    conn.close()
+
+    print(f"Song '{song_name}' added successfully!")
+
 setup_database()
-add_songs()
 
 
 
